@@ -1,0 +1,40 @@
+DATE(1)               User Contributed Perl Documentation              DATE(1)
+
+
+
+ddaattee..ppll -- PPeerrll ttiimmeezzoonnee ccoonnvveerrtteerr ssccrriipptt
+       Convert NZ time strings to GMT and vice-versa.
+
+SSYYNNOOPPSSIISS
+           # Convert NZ datetime to GMT
+           $ date.pl Tue Feb 03 07:00 NZDT 2015
+           $ date.pl Tue Feb 03 07:00 GMT+1300 2015
+           GMT: 2015-02-02T18:00:00
+
+           # Convert GMT datetime to NZT
+           $ date.pl 2015-01-17 13:24:00 GMT
+           GMT: 2015-01-17T00:24:00
+
+IINNSSTTAALLLLAATTIIOONN
+       Simply copy the ddaattee..ppll script to a directory in your $PATH.
+
+DDEEPPEENNDDEENNCCIIEESS
+       This module requires these other modules and libraries:
+
+       +o   DateTime::Format::DateParse
+
+       +o   Date::Parse
+
+LLIICCEENNCCEE
+       Copyright 2015 Dave Webb
+
+       date.pl is free software. You can do aannyytthhiinngg you like with it.
+
+CCHHAANNGGEESS
+       +o   2015-02-09 - VERSION 0.9
+
+           First release. Basic but working.
+
+
+
+perl v5.16.2                      2015-02-09                           DATE(1)
