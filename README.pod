@@ -1,40 +1,51 @@
-DATE(1)               User Contributed Perl Documentation              DATE(1)
+=head1 date.pl - Perl timezone converter script
+
+Convert NZ time strings to GMT and vice-versa.
+
+=head1 SYNOPSIS
+
+    # Convert NZ datetime to GMT
+    $ date.pl Tue Feb 03 07:00 NZDT 2015
+    $ date.pl Tue Feb 03 07:00 GMT+1300 2015
+    GMT: 2015-02-02T18:00:00
+    
+    # Convert GMT datetime to NZT
+    $ date.pl 2015-01-17 13:24:00 GMT
+    GMT: 2015-01-17T00:24:00
+    
+=head1 INSTALLATION
+
+Simply copy the B<date.pl> script to a directory in your $PATH.
+ 
+=head1 DEPENDENCIES
+
+This module requires these other modules and libraries:
+
+=over
+
+=item * L<DateTime::Format::DateParse>
+
+=item * L<Date::Parse>
+
+=back
 
 
+=cut
 
-ddaattee..ppll -- PPeerrll ttiimmeezzoonnee ccoonnvveerrtteerr ssccrriipptt
-       Convert NZ time strings to GMT and vice-versa.
+=head1 LICENCE
 
-SSYYNNOOPPSSIISS
-           # Convert NZ datetime to GMT
-           $ date.pl Tue Feb 03 07:00 NZDT 2015
-           $ date.pl Tue Feb 03 07:00 GMT+1300 2015
-           GMT: 2015-02-02T18:00:00
+Copyright 2015 Dave Webb
 
-           # Convert GMT datetime to NZT
-           $ date.pl 2015-01-17 13:24:00 GMT
-           GMT: 2015-01-17T00:24:00
+date.pl is free software. You can do B<anything> you like with it.
 
-IINNSSTTAALLLLAATTIIOONN
-       Simply copy the ddaattee..ppll script to a directory in your $PATH.
+=head1 CHANGES
 
-DDEEPPEENNDDEENNCCIIEESS
-       This module requires these other modules and libraries:
+=over
 
-       +o   DateTime::Format::DateParse
+=item * 2015-02-09 - VERSION 0.9
 
-       +o   Date::Parse
-
-LLIICCEENNCCEE
-       Copyright 2015 Dave Webb
-
-       date.pl is free software. You can do aannyytthhiinngg you like with it.
-
-CCHHAANNGGEESS
-       +o   2015-02-09 - VERSION 0.9
-
-           First release. Basic but working.
+First release. Basic but working.
 
 
+=cut
 
-perl v5.16.2                      2015-02-09                           DATE(1)
