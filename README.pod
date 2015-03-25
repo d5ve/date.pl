@@ -1,6 +1,6 @@
 =head1 date.pl - Perl timezone converter script
 
-Convert NZ time strings to GMT and vice-versa.
+Convert NZ-time strings to UK-time and vice-versa.
 
 =head1 SYNOPSIS
 
@@ -41,6 +41,10 @@ date.pl is free software. You can do B<anything> you like with it.
 =head1 CHANGES
 
 =over
+
+=item * 2015-03-26 - VERSION 0.92
+
+Convert to modulino in prep for testing.
 
 =item * 2015-03-26 - VERSION 0.91
 
