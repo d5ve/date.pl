@@ -42,6 +42,14 @@ date.pl is free software. You can do B<anything> you like with it.
 
 =over
 
+=item * 2015-03-26 - VERSION 0.91
+
+Handle dates of the form "26 March 2015 at 06:55" as gmail presents in replies.
+
+Handle unix timestamps.
+
+Attempt to parse TZ from strings before calling DataParse.
+
 =item * 2015-02-09 - VERSION 0.9
 
 First release. Basic but working.
