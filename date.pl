@@ -13,15 +13,23 @@ Convert NZ-time strings to UK-time and vice-versa.
 
 =head1 SYNOPSIS
 
-    # Convert NZ datetime to GMT
+    # Parse common date formats
     $ date.pl Tue Feb 03 07:00 NZDT 2015
-    $ date.pl Tue Feb 03 07:00 GMT+1300 2015
-    GMT: 2015-02-02T18:00:00
+    $ date.pl 3rd March 2015 at 7AM
+    $ date.pl 2015-02-03 07:00:00
+    Pacific/Auckland: 2015-02-03T07:00:00 NZDT
+    Europe/London: 2015-02-02T18:00:00 GMT
     
-    # Convert GMT datetime to NZT
-    $ date.pl 2015-01-17 13:24:00 GMT
-    GMT: 2015-01-17T00:24:00
-    
+    # Parse a unix epoch timestamp.
+    $ date.pl 1427318966
+    Pacific/Auckland: 2015-03-26T10:29:26 NZDT
+    Europe/London: 2015-03-25T21:29:26 GMT
+
+    # Parse simple N $units ago
+    $ date.pl 7 hours ago
+    Pacific/Auckland: 2015-03-26T08:43:53 NZDT
+    Europe/London: 2015-03-25T19:43:53 GMT
+
 =head1 INSTALLATION
 
 Simply copy the B<date.pl> script to a directory in your $PATH.
@@ -50,8 +58,8 @@ sub run {
 
     my $date = $class->new( date_str => shift() );
 
-    print "FROM:   $date->{clean_date_str}\n";
-    print "PARSED: $date->{parsed_dt} $date->{parsed_tz}\n";
+    #print "FROM:   $date->{clean_date_str}\n";
+    #print "PARSED: $date->{parsed_dt} $date->{parsed_tz}\n";
 
     print $date->{local_dt}->time_zone_long_name . ": $date->{local_parsed_dt} " . $date->{local_parsed_dt}->time_zone_short_name . "\n";
     print $date->{remote_dt}->time_zone_long_name . ": $date->{remote_parsed_dt} " . $date->{remote_parsed_dt}->time_zone_short_name . "\n";
