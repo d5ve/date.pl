@@ -42,6 +42,15 @@ date.pl is free software. You can do B<anything> you like with it.
 
 =over
 
+=item * 2015-03-26 - VERSION 0.93
+
+Removed old attempt at extra timezone parsing. It didn't work well.
+
+Added support for "N (minutes|hours|days) ago".
+
+Converted functions to methods, so they can access the object's particular
+local and remote timezones.
+
 =item * 2015-03-26 - VERSION 0.92
 
 Convert to modulino in prep for testing.

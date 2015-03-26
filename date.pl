@@ -5,7 +5,7 @@ package Date;
 use warnings;
 use strict;
 
-our $VERSION = '0.92';
+our $VERSION = '0.93';
 
 =head1 date.pl - Perl timezone converter script
 
@@ -68,19 +68,23 @@ sub new {
         local_dt  => DateTime->now( time_zone => ( $args{local_tz} || 'Pacific/Auckland' ) ),
         remote_dt => DateTime->now( time_zone => ( $args{remote_tz} || 'Europe/London' ) ),
     };
-    $self->{clean_date_str}   = clean_date_string( $self->{date_str} );
-    $self->{parsed_dt}        = parse_datetime( $self->{clean_date_str} );
+
+    bless $self, $class;
+
+    $self->{clean_date_str}   = $self->clean_date_string( $self->{date_str} );
+    $self->{parsed_dt}        = $self->parse_datetime( $self->{clean_date_str} );
     $self->{parsed_tz}        = $self->{parsed_dt}->time_zone_short_name;
     $self->{local_parsed_dt}  = $self->{parsed_dt}->clone()->set_time_zone( $self->{local_dt}->time_zone_long_name );
     $self->{remote_parsed_dt} = $self->{parsed_dt}->clone()->set_time_zone( $self->{remote_dt}->time_zone_long_name );
 
-    return bless $self, $class;
+    return $self;
 }
 
 #
 # Return a DateTime object from an arbitrary string.
 #
 sub parse_datetime {
+    my $self     = shift;
     my $date_str = shift;
 
     # This defaults to the local TZ if the string contains no hint.
@@ -89,15 +93,10 @@ sub parse_datetime {
     if ( $date_str =~ m{ \A \d{10} \z }xms ) {
         # Handle unix timestamps, and assume the remote timezone as these will come
         # from hosts over there.
-        $parsed_dt = DateTime->from_epoch(epoch => $date_str, time_zone => 'Europe/London');
+        $parsed_dt = DateTime->from_epoch(epoch => $date_str, time_zone => $self->{remote_dt}->time_zone_long_name);
     }
-    elsif ( $date_str =~ m{ \s ( [A-Z]+ | [+-]? [0-9]+ ) \z }ixms ) {
-        # Try to parse out an timezone string from date as an extra hint to
-        # DateParse constructor.
-        my $tz = $1;
-        $date_str =~ s{ \s ( [A-Z]+ | [+-]? [0-9]+ ) \z }{}ixms;
-        #print "($date_str, $tz)\n";
-        $parsed_dt = DateTime::Format::DateParse->parse_datetime($date_str, $tz);
+    elsif ( $date_str =~ m{ \A (\d+) \s+ (minutes? | hours? | days? | weeks?) \s+ ago \b}xms ) {
+        $parsed_dt = DateTime->now( time_zone => $self->{local_dt}->time_zone_long_name )->subtract( $2 => $1 );
     }
     else {
         $parsed_dt = DateTime::Format::DateParse->parse_datetime($date_str);
@@ -111,6 +110,7 @@ sub parse_datetime {
 # trim/reformat input datestring.
 #
 sub clean_date_string {
+    my $self     = shift;
     my $date_str = shift;
 
     $date_str =~ s{\A \s+}{}xms;
@@ -119,6 +119,9 @@ sub clean_date_string {
     # Handle dates of the form "26 March 2015 at 06:55" as gmail presents in replies.
     $date_str =~ s{\s+ at \s+ }{ }xms;
    
+    # Remove all ( and ) characters.
+    $date_str =~ s{[()]}{}gxms;
+
     return $date_str; 
 }
 
@@ -133,6 +136,15 @@ date.pl is free software. You can do B<anything> you like with it.
 =head1 CHANGES
 
 =over
+
+=item * 2015-03-26 - VERSION 0.93
+
+Removed old attempt at extra timezone parsing. It didn't work well.
+
+Added support for "N (minutes|hours|days) ago".
+
+Converted functions to methods, so they can access the object's particular
+local and remote timezones.
 
 =item * 2015-03-26 - VERSION 0.92
 
