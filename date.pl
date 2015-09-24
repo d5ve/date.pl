@@ -52,7 +52,7 @@ This module requires these other modules and libraries:
 
 =item * L<Date::Parse>
 
-=itme * L<List::Util>
+=item * L<List::Util>
 
 =back
 
