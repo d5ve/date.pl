@@ -13,22 +13,30 @@ Convert NZ-time strings to UK-time and vice-versa.
 
 =head1 SYNOPSIS
 
+    # Just show current time locally, and remotely (and in UTC if remote isn't
+    # currently that).
+    $ date.pl
+    Pacific/Auckland: 2015-09-24T21:47:50 NZST
+       Europe/London: 2015-09-24T10:47:50 BST
+                 UTC: 2015-09-24T09:47:50 UTC
+
     # Parse common date formats
     $ date.pl Tue Feb 03 07:00 NZDT 2015
     $ date.pl 3rd March 2015 at 7AM
     $ date.pl 2015-02-03 07:00:00
     Pacific/Auckland: 2015-02-03T07:00:00 NZDT
-    Europe/London: 2015-02-02T18:00:00 GMT
-    
+       Europe/London: 2015-02-02T18:00:00 GMT
+
     # Parse a unix epoch timestamp.
     $ date.pl 1427318966
     Pacific/Auckland: 2015-03-26T10:29:26 NZDT
-    Europe/London: 2015-03-25T21:29:26 GMT
+       Europe/London: 2015-03-25T21:29:26 GMT
 
     # Parse simple N $units ago
     $ date.pl 7 hours ago
-    Pacific/Auckland: 2015-03-26T08:43:53 NZDT
-    Europe/London: 2015-03-25T19:43:53 GMT
+    Pacific/Auckland: 2015-09-24T14:46:28 NZST
+       Europe/London: 2015-09-24T03:46:28 BST
+                 UTC: 2015-09-24T02:46:28 UTC
 
 =head1 INSTALLATION
 
@@ -43,6 +51,8 @@ This module requires these other modules and libraries:
 =item * L<DateTime::Format::DateParse>
 
 =item * L<Date::Parse>
+
+=itme * L<List::Util>
 
 =back
 
@@ -68,12 +78,13 @@ sub run {
     #print "FROM:   $date->{clean_date_str}\n";
     #print "PARSED: $date->{parsed_dt} $date->{parsed_tz}\n";
     my $tz_len = List::Util::max map {length} ( $date->{local_dt}->time_zone_long_name, $date->{remote_dt}->time_zone_long_name );
-    printf "%${tz_len}s: %s %s\n", $date->{local_dt}->time_zone_long_name, $date->{local_parsed_dt},
+    printf "%${tz_len}s: %s %s\n", $date->{local_parsed_dt}->time_zone_long_name, $date->{local_parsed_dt},
         $date->{local_parsed_dt}->time_zone_short_name;
-    printf "%${tz_len}s: %s %s\n", $date->{remote_dt}->time_zone_long_name, $date->{remote_parsed_dt},
+    printf "%${tz_len}s: %s %s\n", $date->{remote_parsed_dt}->time_zone_long_name, $date->{remote_parsed_dt},
         $date->{remote_parsed_dt}->time_zone_short_name;
-    printf "%${tz_len}s: %s %s\n", $date->{utc_dt}->time_zone_long_name, $date->{utc_dt}, $date->{utc_dt}->time_zone_short_name
-        if $date->{remote_dt}->offset != $date->{utc_dt}->offset;
+    printf "%${tz_len}s: %s %s\n", $date->{utc_dt}->time_zone_long_name, $date->{utc_parsed_dt},
+        $date->{utc_parsed_dt}->time_zone_short_name
+        if $date->{remote_parsed_dt}->offset != $date->{utc_parsed_dt}->offset;
 }
 
 sub new {
@@ -96,6 +107,7 @@ sub new {
     $self->{parsed_tz}        = $self->{parsed_dt}->time_zone_short_name;
     $self->{local_parsed_dt}  = $self->{parsed_dt}->clone()->set_time_zone( $self->{local_dt}->time_zone_long_name );
     $self->{remote_parsed_dt} = $self->{parsed_dt}->clone()->set_time_zone( $self->{remote_dt}->time_zone_long_name );
+    $self->{utc_parsed_dt}    = $self->{parsed_dt}->clone()->set_time_zone( '00:00' );
 
     return $self;
 }
