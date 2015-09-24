@@ -5,7 +5,7 @@ package Date;
 use warnings;
 use strict;
 
-our $VERSION = '0.93';
+our $VERSION = '0.94';
 
 =head1 date.pl - Perl timezone converter script
 
@@ -50,19 +50,30 @@ This module requires these other modules and libraries:
 
 use Data::Dumper;
 use DateTime::Format::DateParse;
+use List::Util ();
+
+use constant {
+    local_tz  => 'Pacific/Auckland',
+    remote_tz => 'Europe/London',
+};
 
 __PACKAGE__->run(join ' ', @ARGV) unless caller();
 
 sub run {
     my $class = shift;
+    my $date_str = shift || DateTime->now( time_zone => local_tz() );
 
-    my $date = $class->new( date_str => shift() );
+    my $date = $class->new( date_str => $date_str );
 
     #print "FROM:   $date->{clean_date_str}\n";
     #print "PARSED: $date->{parsed_dt} $date->{parsed_tz}\n";
-
-    print $date->{local_dt}->time_zone_long_name . ": $date->{local_parsed_dt} " . $date->{local_parsed_dt}->time_zone_short_name . "\n";
-    print $date->{remote_dt}->time_zone_long_name . ": $date->{remote_parsed_dt} " . $date->{remote_parsed_dt}->time_zone_short_name . "\n";
+    my $tz_len = List::Util::max map {length} ( $date->{local_dt}->time_zone_long_name, $date->{remote_dt}->time_zone_long_name );
+    printf "%${tz_len}s: %s %s\n", $date->{local_dt}->time_zone_long_name, $date->{local_parsed_dt},
+        $date->{local_parsed_dt}->time_zone_short_name;
+    printf "%${tz_len}s: %s %s\n", $date->{remote_dt}->time_zone_long_name, $date->{remote_parsed_dt},
+        $date->{remote_parsed_dt}->time_zone_short_name;
+    printf "%${tz_len}s: %s %s\n", $date->{utc_dt}->time_zone_long_name, $date->{utc_dt}, $date->{utc_dt}->time_zone_short_name
+        if $date->{remote_dt}->offset != $date->{utc_dt}->offset;
 }
 
 sub new {
@@ -73,8 +84,9 @@ sub new {
 
     my $self = {
         date_str  => $args{date_str},
-        local_dt  => DateTime->now( time_zone => ( $args{local_tz} || 'Pacific/Auckland' ) ),
-        remote_dt => DateTime->now( time_zone => ( $args{remote_tz} || 'Europe/London' ) ),
+        local_dt  => DateTime->now( time_zone => ( $args{local_tz} || local_tz() ) ),
+        remote_dt => DateTime->now( time_zone => ( $args{remote_tz} || remote_tz() ) ),
+        utc_dt    => DateTime->now(),
     };
 
     bless $self, $class;
@@ -144,6 +156,15 @@ date.pl is free software. You can do B<anything> you like with it.
 =head1 CHANGES
 
 =over
+
+=item * 2015-09-24 - VERSION 0.94
+
+Local and remote timezones are now constants().
+
+run() now defaults input date string to local now.
+
+run() now aligns printout of the dates, plus prints UTC as well if the remote
+time is different.
 
 =item * 2015-03-26 - VERSION 0.93
 
