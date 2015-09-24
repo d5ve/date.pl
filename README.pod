@@ -50,6 +50,15 @@ date.pl is free software. You can do B<anything> you like with it.
 
 =over
 
+=item * 2015-09-24 - VERSION 0.94
+
+Local and remote timezones are now constants().
+
+run() now defaults input date string to local now.
+
+run() now aligns printout of the dates, plus prints UTC as well if the remote
+time is different.
+
 =item * 2015-03-26 - VERSION 0.93
 
 Removed old attempt at extra timezone parsing. It didn't work well.
