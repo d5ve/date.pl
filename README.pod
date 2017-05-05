@@ -4,8 +4,7 @@ Convert NZ-time strings to UK-time and vice-versa.
 
 =head1 SYNOPSIS
 
-    # Just show current time locally, and remotely (and in UTC if remote isn't
-    # currently that).
+    # Show current time locally, remotely, and in UTC.
     $ date.pl
     Pacific/Auckland: Thu 2015-09-24T21:47:50 NZST
        Europe/London: Thu 2015-09-24T10:47:50 BST
@@ -54,7 +53,7 @@ This module requires these other modules and libraries:
 
 =head1 LICENCE
 
-Copyright 2015 Dave Webb
+Copyright 2017 Dave Webb
 
 date.pl is free software. You can do B<anything> you like with it.
 
