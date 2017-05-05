@@ -5,7 +5,7 @@ package Date;
 use warnings;
 use strict;
 
-our $VERSION = '0.94';
+our $VERSION = '1.00';
 
 =head1 date.pl - Perl timezone converter script
 
@@ -16,27 +16,29 @@ Convert NZ-time strings to UK-time and vice-versa.
     # Just show current time locally, and remotely (and in UTC if remote isn't
     # currently that).
     $ date.pl
-    Pacific/Auckland: 2015-09-24T21:47:50 NZST
-       Europe/London: 2015-09-24T10:47:50 BST
-                 UTC: 2015-09-24T09:47:50 UTC
+    Pacific/Auckland: Thu 2015-09-24T21:47:50 NZST
+       Europe/London: Thu 2015-09-24T10:47:50 BST
+                 UTC: Thu 2015-09-24T09:47:50 UTC
 
     # Parse common date formats
     $ date.pl Tue Feb 03 07:00 NZDT 2015
     $ date.pl 3rd March 2015 at 7AM
     $ date.pl 2015-02-03 07:00:00
-    Pacific/Auckland: 2015-02-03T07:00:00 NZDT
-       Europe/London: 2015-02-02T18:00:00 GMT
+    Pacific/Auckland: Tue 2015-02-03T07:00:00 NZDT
+       Europe/London: Mon 2015-02-02T18:00:00 GMT
+                 UTC: Mon 2015-02-02T18:00:00 UTC
 
     # Parse a unix epoch timestamp.
     $ date.pl 1427318966
-    Pacific/Auckland: 2015-03-26T10:29:26 NZDT
-       Europe/London: 2015-03-25T21:29:26 GMT
+    Pacific/Auckland: Thu 2015-03-26T10:29:26 NZDT
+       Europe/London: Wed 2015-03-25T21:29:26 GMT
+                 UTC: Wed 2015-03-25T21:29:26 UTC
 
     # Parse simple N $units ago
     $ date.pl 7 hours ago
-    Pacific/Auckland: 2015-09-24T14:46:28 NZST
-       Europe/London: 2015-09-24T03:46:28 BST
-                 UTC: 2015-09-24T02:46:28 UTC
+    Pacific/Auckland: Sat 2017-05-06T02:23:46 NZST
+       Europe/London: Fri 2017-05-05T15:23:46 BST
+                 UTC: Fri 2017-05-05T14:23:46 UTC
 
 =head1 INSTALLATION
 
@@ -170,6 +172,14 @@ date.pl is free software. You can do B<anything> you like with it.
 =head1 CHANGES
 
 =over
+
+=item * 2017-05-06 - VERSION 1.00
+
+Add the day name to the prints.
+
+Abstract out the format, and loop for the prints.
+
+Always output UTC.
 
 =item * 2015-09-24 - VERSION 0.94
 
