@@ -78,13 +78,15 @@ sub run {
     #print "FROM:   $date->{clean_date_str}\n";
     #print "PARSED: $date->{parsed_dt} $date->{parsed_tz}\n";
     my $tz_len = List::Util::max map {length} ( $date->{local_dt}->time_zone_long_name, $date->{remote_dt}->time_zone_long_name );
-    printf "%${tz_len}s: %s %s\n", $date->{local_parsed_dt}->time_zone_long_name, $date->{local_parsed_dt},
-        $date->{local_parsed_dt}->time_zone_short_name;
-    printf "%${tz_len}s: %s %s\n", $date->{remote_parsed_dt}->time_zone_long_name, $date->{remote_parsed_dt},
-        $date->{remote_parsed_dt}->time_zone_short_name;
-    printf "%${tz_len}s: %s %s\n", $date->{utc_dt}->time_zone_long_name, $date->{utc_parsed_dt},
-        $date->{utc_parsed_dt}->time_zone_short_name
-        if $date->{remote_parsed_dt}->offset != $date->{utc_parsed_dt}->offset;
+    my $format = "%${tz_len}s: %s %-4s %s\n";
+    for my $t (qw( local remote utc )) {
+        printf $format, 
+            $date->{ $t . '_parsed_dt' }->time_zone_long_name,
+            $date->{ $t . '_parsed_dt' }->day_abbr,
+            $date->{ $t . '_parsed_dt' },
+            $date->{ $t . '_parsed_dt' }->time_zone_short_name,
+            ;
+    }
 }
 
 sub new {
