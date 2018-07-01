@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 
 package Date;
 
@@ -99,7 +99,7 @@ sub run {
     $local_tz  //= default_local_tz();
     $remote_tz //= default_remote_tz();
 
-    my $date_str = shift || DateTime->now( time_zone => $local_tz );
+    my $date_str = join(' ', @_) || DateTime->now( time_zone => $local_tz );
 
     my $date = $class->new( date_str => $date_str, local_tz => $local_tz, remote_tz => $remote_tz );
 
