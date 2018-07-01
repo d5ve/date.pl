@@ -13,31 +13,46 @@ Convert NZ-time strings to UK-time and vice-versa.
 
 =head1 SYNOPSIS
 
-    # Show current time locally, remotely, and in UTC.
-    $ date.pl
-    Pacific/Auckland: Thu 2015-09-24T21:47:50 NZST
-       Europe/London: Thu 2015-09-24T10:47:50 BST
-                 UTC: Thu 2015-09-24T09:47:50 UTC
+date.pl [Options]
 
-    # Parse common date formats
-    $ date.pl Tue Feb 03 07:00 NZDT 2015
-    $ date.pl 3rd March 2015 at 7AM
-    $ date.pl 2015-02-03 07:00:00
-    Pacific/Auckland: Tue 2015-02-03T07:00:00 NZDT
-       Europe/London: Mon 2015-02-02T18:00:00 GMT
-                 UTC: Mon 2015-02-02T18:00:00 UTC
+    Options:
+        --local_tz=  Optional local timezone. Defaults to Pacific/Auckland.
+        --remote_tz= Optional remote timezone. Defaults to Europe/London.
+        --help       Show this text.
 
-    # Parse a unix epoch timestamp.
-    $ date.pl 1427318966
-    Pacific/Auckland: Thu 2015-03-26T10:29:26 NZDT
-       Europe/London: Wed 2015-03-25T21:29:26 GMT
-                 UTC: Wed 2015-03-25T21:29:26 UTC
+    Examples:
 
-    # Parse simple N $units ago
-    $ date.pl 7 hours ago
-    Pacific/Auckland: Sat 2017-05-06T02:23:46 NZST
-       Europe/London: Fri 2017-05-05T15:23:46 BST
-                 UTC: Fri 2017-05-05T14:23:46 UTC
+        # Show current time locally, remotely, and in UTC.
+        $ date.pl
+        Pacific/Auckland: Thu 2015-09-24T21:47:50 NZST
+        Europe/London: Thu 2015-09-24T10:47:50 BST
+                    UTC: Thu 2015-09-24T09:47:50 UTC
+
+        # Use non-default local and remote timezones.
+        $ date.pl --local_tz Australia/Melbourne --remote_tz America/New_York
+        Australia/Melbourne: Sun 2018-07-01T16:22:19 AEST
+           America/New_York: Sun 2018-07-01T02:22:19 EDT
+                        UTC: Sun 2018-07-01T06:22:19 UTC
+
+        # Parse common date formats
+        $ date.pl Tue Feb 03 07:00 NZDT 2015
+        $ date.pl 3rd March 2015 at 7AM
+        $ date.pl 2015-02-03 07:00:00
+        Pacific/Auckland: Tue 2015-02-03T07:00:00 NZDT
+        Europe/London: Mon 2015-02-02T18:00:00 GMT
+                    UTC: Mon 2015-02-02T18:00:00 UTC
+
+        # Parse a unix epoch timestamp.
+        $ date.pl 1427318966
+        Pacific/Auckland: Thu 2015-03-26T10:29:26 NZDT
+        Europe/London: Wed 2015-03-25T21:29:26 GMT
+                    UTC: Wed 2015-03-25T21:29:26 UTC
+
+        # Parse simple N $units ago
+        $ date.pl 7 hours ago
+        Pacific/Auckland: Sat 2017-05-06T02:23:46 NZST
+        Europe/London: Fri 2017-05-05T15:23:46 BST
+                    UTC: Fri 2017-05-05T14:23:46 UTC
 
 =head1 INSTALLATION
 
@@ -61,20 +76,32 @@ This module requires these other modules and libraries:
 
 use Data::Dumper;
 use DateTime::Format::DateParse;
+use Getopt::Long qw(GetOptionsFromArray);
 use List::Util ();
+use Pod::Usage;
 
 use constant {
-    local_tz  => 'Pacific/Auckland',
-    remote_tz => 'Europe/London',
+    default_local_tz  => 'Pacific/Auckland',
+    default_remote_tz => 'Europe/London',
 };
 
-__PACKAGE__->run(join ' ', @ARGV) unless caller();
+__PACKAGE__->run(@ARGV) unless caller();
 
 sub run {
     my $class = shift;
-    my $date_str = shift || DateTime->now( time_zone => local_tz() );
+    my $args = GetOptionsFromArray(
+        \@_,
+        'local_tz=s'  => \my $local_tz,
+        'remote_tz=s' => \my $remote_tz,
+        'help|?'      => sub {pod2usage},
+    ) || pod2usage;
 
-    my $date = $class->new( date_str => $date_str );
+    $local_tz  //= default_local_tz();
+    $remote_tz //= default_remote_tz();
+
+    my $date_str = shift || DateTime->now( time_zone => $local_tz );
+
+    my $date = $class->new( date_str => $date_str, local_tz => $local_tz, remote_tz => $remote_tz );
 
     #print "FROM:   $date->{clean_date_str}\n";
     #print "PARSED: $date->{parsed_dt} $date->{parsed_tz}\n";
@@ -98,8 +125,8 @@ sub new {
 
     my $self = {
         date_str  => $args{date_str},
-        local_dt  => DateTime->now( time_zone => ( $args{local_tz} || local_tz() ) ),
-        remote_dt => DateTime->now( time_zone => ( $args{remote_tz} || remote_tz() ) ),
+        local_dt  => DateTime->now( time_zone => ( $args{local_tz} || default_local_tz() ) ),
+        remote_dt => DateTime->now( time_zone => ( $args{remote_tz} || default_remote_tz() ) ),
         utc_dt    => DateTime->now(),
     };
 
