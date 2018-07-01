@@ -1,11 +1,11 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 
 package Date;
 
 use warnings;
 use strict;
 
-our $VERSION = '0.94';
+our $VERSION = '1.00';
 
 =head1 date.pl - Perl timezone converter script
 
@@ -13,30 +13,46 @@ Convert NZ-time strings to UK-time and vice-versa.
 
 =head1 SYNOPSIS
 
-    # Just show current time locally, and remotely (and in UTC if remote isn't
-    # currently that).
-    $ date.pl
-    Pacific/Auckland: 2015-09-24T21:47:50 NZST
-       Europe/London: 2015-09-24T10:47:50 BST
-                 UTC: 2015-09-24T09:47:50 UTC
+date.pl [Options]
 
-    # Parse common date formats
-    $ date.pl Tue Feb 03 07:00 NZDT 2015
-    $ date.pl 3rd March 2015 at 7AM
-    $ date.pl 2015-02-03 07:00:00
-    Pacific/Auckland: 2015-02-03T07:00:00 NZDT
-       Europe/London: 2015-02-02T18:00:00 GMT
+    Options:
+        --local_tz=  Optional local timezone. Defaults to Pacific/Auckland.
+        --remote_tz= Optional remote timezone. Defaults to Europe/London.
+        --help       Show this text.
 
-    # Parse a unix epoch timestamp.
-    $ date.pl 1427318966
-    Pacific/Auckland: 2015-03-26T10:29:26 NZDT
-       Europe/London: 2015-03-25T21:29:26 GMT
+    Examples:
 
-    # Parse simple N $units ago
-    $ date.pl 7 hours ago
-    Pacific/Auckland: 2015-09-24T14:46:28 NZST
-       Europe/London: 2015-09-24T03:46:28 BST
-                 UTC: 2015-09-24T02:46:28 UTC
+        # Show current time locally, remotely, and in UTC.
+        $ date.pl
+        Pacific/Auckland: Thu 2015-09-24T21:47:50 NZST
+        Europe/London: Thu 2015-09-24T10:47:50 BST
+                    UTC: Thu 2015-09-24T09:47:50 UTC
+
+        # Use non-default local and remote timezones.
+        $ date.pl --local_tz Australia/Melbourne --remote_tz America/New_York
+        Australia/Melbourne: Sun 2018-07-01T16:22:19 AEST
+           America/New_York: Sun 2018-07-01T02:22:19 EDT
+                        UTC: Sun 2018-07-01T06:22:19 UTC
+
+        # Parse common date formats
+        $ date.pl Tue Feb 03 07:00 NZDT 2015
+        $ date.pl 3rd March 2015 at 7AM
+        $ date.pl 2015-02-03 07:00:00
+        Pacific/Auckland: Tue 2015-02-03T07:00:00 NZDT
+        Europe/London: Mon 2015-02-02T18:00:00 GMT
+                    UTC: Mon 2015-02-02T18:00:00 UTC
+
+        # Parse a unix epoch timestamp.
+        $ date.pl 1427318966
+        Pacific/Auckland: Thu 2015-03-26T10:29:26 NZDT
+        Europe/London: Wed 2015-03-25T21:29:26 GMT
+                    UTC: Wed 2015-03-25T21:29:26 UTC
+
+        # Parse simple N $units ago
+        $ date.pl 7 hours ago
+        Pacific/Auckland: Sat 2017-05-06T02:23:46 NZST
+        Europe/London: Fri 2017-05-05T15:23:46 BST
+                    UTC: Fri 2017-05-05T14:23:46 UTC
 
 =head1 INSTALLATION
 
@@ -60,36 +76,45 @@ This module requires these other modules and libraries:
 
 use Data::Dumper;
 use DateTime::Format::DateParse;
+use Getopt::Long qw(GetOptionsFromArray);
 use List::Util ();
+use Pod::Usage;
 
 use constant {
-    local_tz  => 'Pacific/Auckland',
-    remote_tz => 'Europe/London',
+    default_local_tz  => 'Pacific/Auckland',
+    default_remote_tz => 'Europe/London',
 };
 
-__PACKAGE__->run(join ' ', @ARGV) unless caller();
+__PACKAGE__->run(@ARGV) unless caller();
 
 sub run {
     my $class = shift;
-    my $date_str = shift || DateTime->now( time_zone => local_tz() );
+    my $args = GetOptionsFromArray(
+        \@_,
+        'local_tz=s'  => \my $local_tz,
+        'remote_tz=s' => \my $remote_tz,
+        'help|?'      => sub {pod2usage},
+    ) || pod2usage;
 
-    my $date = $class->new( date_str => $date_str );
+    $local_tz  //= default_local_tz();
+    $remote_tz //= default_remote_tz();
+
+    my $date_str = join(' ', @_) || DateTime->now( time_zone => $local_tz );
+
+    my $date = $class->new( date_str => $date_str, local_tz => $local_tz, remote_tz => $remote_tz );
 
     #print "FROM:   $date->{clean_date_str}\n";
     #print "PARSED: $date->{parsed_dt} $date->{parsed_tz}\n";
     my $tz_len = List::Util::max map {length} ( $date->{local_dt}->time_zone_long_name, $date->{remote_dt}->time_zone_long_name );
-    printf "%${tz_len}s: %s %s (%s)\n", $date->{local_parsed_dt}->time_zone_long_name,
-        $date->{local_parsed_dt},
-        $date->{local_parsed_dt}->time_zone_short_name,
-        $date->{local_parsed_dt}->day_abbr();
-    printf "%${tz_len}s: %s %s (%s)\n", $date->{remote_parsed_dt}->time_zone_long_name,
-        $date->{remote_parsed_dt},
-        $date->{remote_parsed_dt}->time_zone_short_name,
-        $date->{remote_parsed_dt}->day_abbr();
-    printf "%${tz_len}s: %s %s (%s)\n", $date->{utc_dt}->time_zone_long_name,
-        $date->{utc_parsed_dt},
-        $date->{utc_parsed_dt}->time_zone_short_name, $date->{utc_parsed_dt}->day_abbr()
-        if $date->{remote_parsed_dt}->offset != $date->{utc_parsed_dt}->offset;
+    my $format = "%${tz_len}s: %s %-4s %s\n";
+    for my $t (qw( local remote utc )) {
+        printf $format, 
+            $date->{ $t . '_parsed_dt' }->time_zone_long_name,
+            $date->{ $t . '_parsed_dt' }->day_abbr,
+            $date->{ $t . '_parsed_dt' },
+            $date->{ $t . '_parsed_dt' }->time_zone_short_name,
+            ;
+    }
 }
 
 sub new {
@@ -100,8 +125,8 @@ sub new {
 
     my $self = {
         date_str  => $args{date_str},
-        local_dt  => DateTime->now( time_zone => ( $args{local_tz} || local_tz() ) ),
-        remote_dt => DateTime->now( time_zone => ( $args{remote_tz} || remote_tz() ) ),
+        local_dt  => DateTime->now( time_zone => ( $args{local_tz} || default_local_tz() ) ),
+        remote_dt => DateTime->now( time_zone => ( $args{remote_tz} || default_remote_tz() ) ),
         utc_dt    => DateTime->now(),
     };
 
@@ -166,13 +191,21 @@ __END__
 
 =head1 LICENCE
 
-Copyright 2015 Dave Webb
+Copyright 2017 Dave Webb
 
 date.pl is free software. You can do B<anything> you like with it.
 
 =head1 CHANGES
 
 =over
+
+=item * 2017-05-06 - VERSION 1.00
+
+Add the day name to the prints.
+
+Abstract out the format, and loop for the prints.
+
+Always output UTC.
 
 =item * 2015-09-24 - VERSION 0.94
 
