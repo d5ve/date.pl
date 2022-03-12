@@ -5,7 +5,7 @@ use warnings;
 
 use Test::More;
 
-require_ok('date.pl');
+require_ok('./date.pl');
 
 use constant {
     local_tz => 'Pacific/Auckland',
