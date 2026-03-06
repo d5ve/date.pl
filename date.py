@@ -38,6 +38,7 @@ DATE_FORMATS = [
     "%a, %d %b %Y %H:%M:%S %z",
     "%a, %d %b %Y %H:%M:%S",
     # Common log/email formats
+    "%d/%b/%Y:%H:%M:%S %z",
     "%d %b %Y %H:%M:%S %z",
     "%d %b %Y %H:%M:%S",
     "%d %b %Y %H:%M",
@@ -140,6 +141,48 @@ def parse_date(s):
     sys.exit(1)
 
 
+def relative_time(dt):
+    """Return a human-friendly string like '3 minutes ago' or '2 hours from now'."""
+    now = datetime.now(LOCAL_TZ)
+    diff = now - dt
+    total_seconds = int(diff.total_seconds())
+    future = total_seconds < 0
+    total_seconds = abs(total_seconds)
+
+    if total_seconds < 5:
+        return "just now"
+
+    minutes = total_seconds / 60
+    hours = total_seconds / 3600
+    days = total_seconds / 86400
+    weeks = days / 7
+    months = days / 30.44
+    years = days / 365.25
+
+    if minutes < 90:
+        value, unit = int(minutes), "minute"
+    elif hours < 30:
+        value, unit = f"{hours:.1f}", "hour"
+    elif days < 14:
+        value, unit = f"{days:.1f}", "day"
+    elif weeks < 8:
+        value, unit = f"{weeks:.1f}", "week"
+    elif months < 18:
+        value, unit = f"{months:.1f}", "month"
+    else:
+        value, unit = f"{years:.1f}", "year"
+
+    # Strip trailing .0 for cleaner output
+    value = str(value)
+    if value.endswith(".0"):
+        value = value[:-2]
+
+    if value != "1":
+        unit += "s"
+    suffix = "from now" if future else "ago"
+    return f"{value} {unit} {suffix}"
+
+
 def format_output(dt):
     """Format the date in local and UTC as aligned columns."""
     local_dt = dt.astimezone(LOCAL_TZ)
@@ -153,6 +196,7 @@ def format_output(dt):
     utc_abbr = utc_dt.strftime("%Z")
 
     lines = [
+        f"{'':>{tz_width}}  {relative_time(dt)}",
         f"{local_name:>{tz_width}}: {local_dt.strftime(fmt)} {local_abbr}",
         f"{'UTC':>{tz_width}}: {utc_dt.strftime(fmt)} {utc_abbr}",
     ]
