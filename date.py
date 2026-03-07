@@ -113,6 +113,15 @@ def extract_tz_abbrev(s):
 
 def parse_datetime_string(s):
     """Try strptime with each candidate format. Returns datetime or None."""
+    # Try ISO 8601 first — handles offsets like +00:00 that strptime struggles with.
+    try:
+        dt = datetime.fromisoformat(s)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=LOCAL_TZ)
+        return dt
+    except ValueError:
+        pass
+
     # First try with the original string (handles %z numeric offsets).
     # Then try with TZ abbreviation stripped and applied manually.
     for stripped, tz_override in [(s, None), extract_tz_abbrev(s)]:
