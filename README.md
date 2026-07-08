@@ -2,7 +2,7 @@
 
 > Yes, the repo is called `date.pl`. The script used to be Perl. It got better.
 
-A simple timezone converter that shows a date/time in NZ (Pacific/Auckland) and UTC. Useful for marrying up log entry timestamps. Drop it on any machine with Python 3.9+ and run it.
+A simple timezone converter that shows a date/time in NZ (Pacific/Auckland) and UTC. Useful for marrying up log entry timestamps. Drop it on any machine with [uv](https://docs.astral.sh/uv/) and run it — dependencies install themselves on first run.
 
 ```
 $ ./date.py
@@ -31,20 +31,27 @@ date.py help / --help / -h       Show help
 
 ## Supported date formats
 
-The parser tries a list of `strptime` patterns and picks the first match. It handles:
+Parsing is handled by [dateparser](https://dateparser.readthedocs.io/) with a normalisation layer in front. It handles:
 
-- ISO: `2015-03-25 15:39:54 +0000`, `2015-03-25T14:30:00`
+- ISO 8601 variants: `2015-03-25 15:39:54 +0000`, `2026-07-08T14:30:00.0000000Z`, `20260708T143000Z`
+- Log formats: Apache CLF `[12/Jul/2026:23:59:59 -0700]`, log4j `2026-07-08 14:30:00,123`, syslog, `unix date` output
 - RFC 2822: `Wed, 25 Mar 2015 14:25:03 -0700`
-- Verbose: `26 March 2015 at 06:05 NZDT`, `3rd March 2015 at 7AM`
-- US-style: `Mar 26 9:53 AM 2015 NZDT`
+- Verbose: `26 March 2015 at 06:05 NZDT`, `July 12, 2026 at 11:59:59 PM PT`
+- US-style: `7/12/2026 11:59:59 PM`; European dotted dates read day-first: `12.07.2026 14:30`
 - Unix epoch: `1427318966`, `1427318966000` (millis truncated)
 - Relative: `28 minutes ago`, `7 hours ago`, `3 days ago`
 
-Common timezone abbreviations (NZDT, NZST, BST, PDT, EST, etc.) are recognised and converted to UTC offsets. When no timezone is given, NZ is assumed.
+Timezone abbreviations that encode their DST state (NZDT, PDT, BST, etc.) map to fixed offsets. Bare abbreviations (PT, ET, CT, MT) map to IANA zones so the offset is resolved from the date itself. Ambiguous abbreviations get the American/Indian reading (CST is US Central, IST is India). When no timezone is given, NZ is assumed.
 
 ## Requirements
 
-Python 3.9+ (stdlib only — uses `zoneinfo`, no packages to install).
+[uv](https://docs.astral.sh/uv/) (`brew install uv`). The script declares its own dependencies inline (PEP 723); uv fetches them on first run. Alternatively run with any Python 3.11+ that has `dateparser` installed.
+
+## Tests
+
+```
+$ ./test_date.py
+```
 
 ## Legacy
 
