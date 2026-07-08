@@ -56,7 +56,10 @@ def clean_date_string(s):
     # Comma as the fractional-seconds separator (log4j/syslog: 14:30:00,123).
     s = re.sub(r"(\d{2}:\d{2}:\d{2}),(\d{1,6})\b", r"\1.\2", s)
     # Normalise UTC+N / UTC-N offsets to +HHMM format.
-    s = re.sub(r"UTC([+-])(\d{1,2})$", lambda m: f"{m.group(1)}{int(m.group(2)):02d}00", s)
+    s = re.sub(r"(?:GMT|UTC)([+-])(\d{1,2})$", lambda m: f"{m.group(1)}{int(m.group(2)):02d}00", s)
+    # Java Date.toString() puts the year after the offset (23:46:04 GMT+1300
+    # 2015), where dateparser silently drops it. Move the year first.
+    s = re.sub(r"((?:GMT|UTC)?[+-]\d{2}:?\d{2})\s+(\d{4})$", r"\2 \1", s)
     # Add space before AM/PM so 12-hour times parse (e.g. "7AM" -> "7 AM").
     s = re.sub(r"(\d)(AM|PM)\b", r"\1 \2", s, flags=re.IGNORECASE)
     # Strip redundant TZ name after a numeric offset (e.g. "-0700 PDT" -> "-0700").
