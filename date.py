@@ -1,7 +1,12 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --script
 
 # ABOUTME: Timezone converter showing local (NZ) time and UTC for a given
 # ABOUTME: date/time string, unix timestamp, or relative time expression.
+
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["dateparser"]
+# ///
 
 import argparse
 import re
@@ -12,62 +17,47 @@ from zoneinfo import ZoneInfo
 LOCAL_TZ = ZoneInfo("Pacific/Auckland")
 UTC = timezone.utc
 
-# Common TZ abbreviations to UTC offset in hours. Python's strptime %Z only
-# accepts a handful of names, so we map these to numeric offsets ourselves.
+# Common TZ abbreviations to UTC offset in hours. These abbreviations encode
+# their own DST state (PDT vs PST), so a fixed offset is always correct.
+# Ambiguous abbreviations (CST, IST) resolve to the American/Indian reading.
 TZ_ABBREVS = {
     "NZDT": 13, "NZST": 12,
     "AEDT": 11, "AEST": 10, "ACST": 9.5, "AWST": 8,
-    "JST": 9, "CST": 8, "IST": 5.5,
+    "JST": 9, "IST": 5.5,
     "MSK": 3, "EET": 2, "CET": 1,
     "GMT": 0, "UTC": 0, "WET": 0,
     "BST": 1, "CEST": 2, "EEST": 3,
-    "EST": -5, "EDT": -4, "CST6": -6, "CDT": -5,
+    "EST": -5, "EDT": -4, "CST": -6, "CDT": -5,
     "MST": -7, "MDT": -6, "PST": -8, "PDT": -7,
     "AKST": -9, "AKDT": -8, "HST": -10,
 }
 
-# Formats to try when guessing a date string. Order matters — more specific first.
-DATE_FORMATS = [
-    # ISO-ish
-    "%Y-%m-%dT%H:%M:%S",
-    "%Y-%m-%d %H:%M:%S %z",
-    "%Y-%m-%d %H:%M:%S",
-    "%Y-%m-%d %H:%M",
-    "%Y-%m-%d",
-    # RFC 2822-ish
-    "%a, %d %b %Y %H:%M:%S %z",
-    "%a, %d %b %Y %H:%M:%S",
-    # Common log/email formats
-    "%d/%b/%Y:%H:%M:%S %z",
-    "%d %b %Y %H:%M:%S %z",
-    "%d %b %Y %H:%M:%S",
-    "%d %b %Y %H:%M",
-    "%b %d %Y %H:%M:%S",
-    "%b %d %I:%M %p %Y",
-    # Verbose
-    "%B %d, %Y %I:%M:%S %p %z",
-    "%B %d, %Y %I:%M:%S %p",
-    "%B %d, %Y %H:%M:%S",
-    "%d %B %Y %H:%M:%S",
-    "%d %B %Y %H:%M",
-    "%d %B %Y %I %p",
-    "%d %B %Y",
-    # Date only
-    "%d %b %Y",
-    "%b %d %Y",
-]
-
+# TZ abbreviations that don't encode DST state (e.g. "11:59 PM PT"). These
+# map to IANA zones so the offset resolves correctly for the parsed date.
+TZ_ZONES = {
+    "PT": "America/Los_Angeles",
+    "MT": "America/Denver",
+    "CT": "America/Chicago",
+    "ET": "America/New_York",
+    "AKT": "America/Anchorage",
+    "NZT": "Pacific/Auckland",
+    "AET": "Australia/Sydney",
+}
 
 def clean_date_string(s):
     """Trim and normalise a date string for parsing."""
     s = s.strip()
     s = re.sub(r"\s+at\s+", " ", s)
-    s = re.sub(r"[()]", "", s)
+    s = re.sub(r"[()\[\]]", "", s)
     # Strip ordinal suffixes (1st, 2nd, 3rd, 4th, etc.)
     s = re.sub(r"(\d+)(st|nd|rd|th)\b", r"\1", s)
+    # Apache CLF puts a colon between date and time (12/Jul/2026:23:59:59).
+    s = re.sub(r"(\d{2}/[A-Za-z]{3}/\d{4}):", r"\1 ", s)
+    # Comma as the fractional-seconds separator (log4j/syslog: 14:30:00,123).
+    s = re.sub(r"(\d{2}:\d{2}:\d{2}),(\d{1,6})\b", r"\1.\2", s)
     # Normalise UTC+N / UTC-N offsets to +HHMM format.
     s = re.sub(r"UTC([+-])(\d{1,2})$", lambda m: f"{m.group(1)}{int(m.group(2)):02d}00", s)
-    # Add space before AM/PM so strptime %I:%M %p works (e.g. "7AM" -> "7 AM").
+    # Add space before AM/PM so 12-hour times parse (e.g. "7AM" -> "7 AM").
     s = re.sub(r"(\d)(AM|PM)\b", r"\1 \2", s, flags=re.IGNORECASE)
     # Strip redundant TZ name after a numeric offset (e.g. "-0700 PDT" -> "-0700").
     s = re.sub(r"([+-]\d{4})\s+[A-Z]{2,5}$", r"\1", s)
@@ -102,28 +92,47 @@ def parse_epoch(s):
 
 
 def extract_tz_abbrev(s):
-    """Strip a trailing TZ abbreviation and return (cleaned_string, tz_offset_or_None)."""
+    """Strip a trailing TZ abbreviation and return (cleaned_string, tzinfo_or_None)."""
     m = re.search(r"\s+([A-Z]{2,5})$", s)
-    if m and m.group(1) in TZ_ABBREVS:
-        offset_hours = TZ_ABBREVS[m.group(1)]
-        tz = timezone(timedelta(hours=offset_hours))
-        return s[:m.start()], tz
+    if m:
+        abbrev = m.group(1)
+        if abbrev in TZ_ABBREVS:
+            tz = timezone(timedelta(hours=TZ_ABBREVS[abbrev]))
+            return s[:m.start()], tz
+        if abbrev in TZ_ZONES:
+            return s[:m.start()], ZoneInfo(TZ_ZONES[abbrev])
     return s, None
 
 
+def parse_iso(s):
+    """Try ISO 8601 — handles offsets like +00:00 and compact forms. Returns datetime or None."""
+    try:
+        return datetime.fromisoformat(s)
+    except ValueError:
+        return None
+
+
+def parse_freeform(s):
+    """Parse with dateparser, which covers log, email, and prose formats. Returns datetime or None."""
+    import dateparser
+
+    settings = {}
+    # Dotted dates (12.07.2026) are a European convention, so read them
+    # day-first; slash dates keep dateparser's month-first default.
+    if re.match(r"\d{1,2}\.\d{1,2}\.\d{2,4}\b", s):
+        settings["DATE_ORDER"] = "DMY"
+    return dateparser.parse(s, settings=settings)
+
+
 def parse_datetime_string(s):
-    """Try strptime with each candidate format. Returns datetime or None."""
-    # First try with the original string (handles %z numeric offsets).
-    # Then try with TZ abbreviation stripped and applied manually.
-    for stripped, tz_override in [(s, None), extract_tz_abbrev(s)]:
-        for fmt in DATE_FORMATS:
-            try:
-                dt = datetime.strptime(stripped, fmt)
-                if dt.tzinfo is None:
-                    dt = dt.replace(tzinfo=tz_override or LOCAL_TZ)
-                return dt
-            except ValueError:
-                continue
+    """Parse an absolute date/time string. Returns datetime or None."""
+    stripped, tz_override = extract_tz_abbrev(s)
+    for parse in (parse_iso, parse_freeform):
+        dt = parse(stripped)
+        if dt is not None:
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=tz_override or LOCAL_TZ)
+            return dt
     return None
 
 
